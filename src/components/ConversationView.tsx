@@ -53,6 +53,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
   const [draftText, setDraftText] = useState(conversation.draft?.content || '');
   const [toneMenuOpen, setToneMenuOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const messages = conversation.messages || [];
+  const primaryMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
+  const [viewHtml, setViewHtml] = useState(!!primaryMessage?.body_html);
+
+  useEffect(() => {
+    setViewHtml(!!primaryMessage?.body_html);
+  }, [primaryMessage?.body_html]);
 
   useEffect(() => {
     setDraftText(conversation.draft?.content || '');
@@ -87,8 +94,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
     );
     setTimeout(() => setStatusMessage(null), 5000);
   };
-
-  const primaryMessage = conversation.messages[conversation.messages.length - 1];
 
   return (
     <div className="flex-1 flex flex-col bg-white/50 overflow-y-auto select-none">
@@ -207,7 +212,27 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              {primaryMessage?.body_html && (
+                <div className="flex items-center bg-[#F2EFE9] p-0.5 rounded-lg text-[10px] font-medium border border-[#E7E3DA]">
+                  <button
+                    onClick={() => setViewHtml(true)}
+                    className={`px-2 py-0.5 rounded-md transition ${
+                      viewHtml ? 'bg-white text-[#292B27] shadow-xs font-semibold' : 'text-[#777970]'
+                    }`}
+                  >
+                    HTML
+                  </button>
+                  <button
+                    onClick={() => setViewHtml(false)}
+                    className={`px-2 py-0.5 rounded-md transition ${
+                      !viewHtml ? 'bg-white text-[#292B27] shadow-xs font-semibold' : 'text-[#777970]'
+                    }`}
+                  >
+                    Text
+                  </button>
+                </div>
+              )}
               <button
                 className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition border border-[#E7E3DA]"
                 title="Reply directly"
@@ -225,9 +250,16 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
           </div>
 
           {/* Email Body content */}
-          <div className="text-xs text-[#292B27] leading-relaxed whitespace-pre-wrap font-normal pt-1">
-            {primaryMessage?.body_text || conversation.snippet}
-          </div>
+          {viewHtml && primaryMessage?.body_html ? (
+            <div
+              className="text-xs text-[#292B27] leading-relaxed break-words pt-1 overflow-x-auto max-h-[600px] overflow-y-auto bg-white/40 p-4 rounded-xl border border-[#E7E3DA]/60 [&_p]:mb-2.5 [&_a]:text-[#4F46E5] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+              dangerouslySetInnerHTML={{ __html: primaryMessage.body_html }}
+            />
+          ) : (
+            <div className="text-xs text-[#292B27] leading-relaxed whitespace-pre-wrap font-sans pt-1 break-words bg-[#FAF9F5]/40 p-4 rounded-xl border border-[#E7E3DA]/40">
+              {primaryMessage?.body_text || conversation.snippet || 'No message content available.'}
+            </div>
+          )}
         </div>
 
         {/* AI Draft Response Card (Light Periwinkle / Lavender Frosted Panel) */}
@@ -252,12 +284,32 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-[#4338CA] hover:bg-white/80 transition border border-[#C7D2FE] bg-white/40 disabled:opacity-50"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-              <span>{isGenerating ? 'Drafting...' : 'Regenerate'}</span>
+              <span>{isGenerating ? 'Drafting...' : conversation.draft ? 'Regenerate' : 'Generate'}</span>
             </button>
           </div>
 
-          {/* Draft text editor */}
-          <div className="relative">
+          {!conversation.draft ? (
+            <div className="p-6 text-center space-y-3 bg-white/50 rounded-xl border border-dashed border-[#C7D2FE]">
+              <Sparkles className="w-6 h-6 text-[#4F46E5] mx-auto animate-pulse" />
+              <div className="text-xs font-semibold text-[#1E1B4B]">
+                No draft response generated for this email yet
+              </div>
+              <p className="text-[11px] text-[#64748B] max-w-sm mx-auto">
+                Click below to have the AI analyze the customer's message and compose a grounded draft using your approved policies.
+              </p>
+              <button
+                onClick={() => onRegenerateDraft()}
+                disabled={isGenerating}
+                className="px-4 py-2 rounded-full text-xs font-semibold bg-[#292B27] text-white hover:bg-black transition shadow-xs flex items-center gap-2 mx-auto disabled:opacity-50"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                <span>{isGenerating ? 'Analyzing & Drafting...' : 'Generate AI Reply Draft'}</span>
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Draft text editor */}
+              <div className="relative">
             <textarea
               value={draftText}
               onChange={handleTextChange}
@@ -362,6 +414,8 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
               </button>
             </div>
           </div>
+        </>
+      )}
 
           {/* Feedback banner */}
           {statusMessage && (

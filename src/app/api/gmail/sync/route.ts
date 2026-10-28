@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { gmailClient } from '@/lib/gmail/client';
 import { store } from '@/lib/store';
+import { processConversationWithAI } from '@/lib/ai/pipeline';
 
 export async function POST() {
   try {
@@ -19,7 +20,7 @@ export async function POST() {
       const existing = store.getConversationById(`gmail-${id}`);
       if (!existing) {
         const msg = await gmailClient.getMessage(accessToken, id);
-        store.addConversation({
+        const conv = store.addConversation({
           id: `gmail-${msg.id}`,
           workspace_id: 'ws-default',
           gmail_thread_id: msg.threadId,
@@ -54,6 +55,7 @@ export async function POST() {
             },
           ],
         });
+        await processConversationWithAI(conv);
         importedCount++;
       }
     }

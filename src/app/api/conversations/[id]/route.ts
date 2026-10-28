@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { store } from '@/lib/store';
+import { processConversationWithAI } from '@/lib/ai/pipeline';
 
 export async function GET(
   _req: NextRequest,
@@ -7,9 +8,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const conversation = store.getConversationById(id);
+    let conversation = store.getConversationById(id);
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    // If conversation is from real Gmail and doesn't have AI analysis yet, process it dynamically
+    if (!conversation.classification || !conversation.draft) {
+      conversation = await processConversationWithAI(conversation);
     }
 
     const timeline = store.getAuditEvents(id);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gmailClient } from '@/lib/gmail/client';
 import { store } from '@/lib/store';
+import { processConversationWithAI } from '@/lib/ai/pipeline';
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
       const messageIds = await gmailClient.listMessages(tokens.access_token, 'in:inbox', 5);
       for (const id of messageIds) {
         const msg = await gmailClient.getMessage(tokens.access_token, id);
-        store.addConversation({
+        const conv = store.addConversation({
           id: `gmail-${msg.id}`,
           workspace_id: 'ws-default',
           gmail_thread_id: msg.threadId,
@@ -76,6 +77,7 @@ export async function GET(req: NextRequest) {
             },
           ],
         });
+        await processConversationWithAI(conv);
       }
     } catch (syncErr) {
       console.warn('Initial Gmail sync encountered an issue:', syncErr);
