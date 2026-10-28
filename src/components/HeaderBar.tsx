@@ -6,14 +6,11 @@ import {
   Bell,
   ChevronDown,
   Settings,
-  Sparkles,
-  Mail,
-  ShieldCheck,
-  BookOpen,
-  BarChart3,
-  Users,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { Workspace } from '@/types';
+import { PostmarkLogo } from './PostmarkLogo';
 
 interface HeaderBarProps {
   searchQuery: string;
@@ -23,6 +20,8 @@ interface HeaderBarProps {
   onOpenOnboarding: () => void;
   currentView: 'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams';
   onViewChange: (view: 'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams') => void;
+  isSidebarCollapsed: boolean;
+  onToggleSidebar: () => void;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
@@ -33,36 +32,39 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenOnboarding,
   currentView,
   onViewChange,
+  isSidebarCollapsed,
+  onToggleSidebar,
 }) => {
   return (
-    <header className="h-14 border-b border-[#E7E3DA]/80 px-5 flex items-center justify-between select-none bg-white/40 backdrop-blur-md rounded-t-3xl">
-      {/* Left: macOS Traffic Lights & Mode Badge */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]/50 shadow-sm cursor-pointer hover:opacity-80 transition" />
-          <div className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]/50 shadow-sm cursor-pointer hover:opacity-80 transition" />
-          <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]/50 shadow-sm cursor-pointer hover:opacity-80 transition" />
-        </div>
-
-        {/* Mode Pill Indicator */}
+    <header className="h-14 border-b border-[#E7E3DA]/80 px-4 sm:px-5 flex items-center justify-between select-none bg-white/40 backdrop-blur-md rounded-t-3xl">
+      {/* Left: Branding with Postmark Logo and Sidebar Collapse Button */}
+      <div className="flex items-center gap-3">
+        {/* Sidebar Collapse Toggle */}
         <button
-          onClick={onOpenOnboarding}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition ${
-            workspace.mode === 'real' && workspace.gmail_connected
-              ? 'bg-[#ECFDF3] border-[#A6F4C5] text-[#027A48] hover:bg-[#D1FADF]'
-              : 'bg-[#FEF6EE] border-[#F9DBAF] text-[#B54708] hover:bg-[#FEE4C8]'
-          }`}
-          title="Click to switch between Real Gmail and Demo Mode"
+          onClick={onToggleSidebar}
+          className="p-1.5 rounded-lg text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition"
+          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              workspace.mode === 'real' && workspace.gmail_connected
-                ? 'bg-[#12B76A]'
-                : 'bg-[#F79009]'
-            }`}
-          />
-          {workspace.mode === 'real' && workspace.gmail_connected ? 'Gmail Connected' : 'Demo Mode'}
+          {isSidebarCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4" />
+          )}
         </button>
+
+        {/* Postmark Logo & Brand Typography */}
+        <div className="flex items-center gap-2.5">
+          <PostmarkLogo size={28} className="shadow-xs" />
+          <div>
+            <h1 className="text-sm font-bold tracking-tight text-[#292B27] leading-tight">
+              Postmark
+            </h1>
+            <p className="text-[10px] text-[#777970] leading-none mt-0.5">
+              Intelligent Support Workspace
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Center: Search Bar */}
@@ -82,8 +84,30 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         </div>
       </div>
 
-      {/* Right: View Navigation, Notifications, Settings, Profile */}
-      <div className="flex items-center gap-2">
+      {/* Right: Mode Badge, View Switchers, Notifications, Settings, Profile */}
+      <div className="flex items-center gap-2.5">
+        {/* Relocated Demo Mode / Gmail Connected Badge */}
+        <button
+          onClick={onOpenOnboarding}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition cursor-pointer ${
+            workspace.mode === 'real' && workspace.gmail_connected
+              ? 'bg-[#ECFDF3] border-[#A6F4C5] text-[#027A48] hover:bg-[#D1FADF]'
+              : 'bg-[#FEF6EE] border-[#F9DBAF] text-[#B54708] hover:bg-[#FEE4C8]'
+          }`}
+          title="Click to switch between Real Gmail and Demo Mode"
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              workspace.mode === 'real' && workspace.gmail_connected
+                ? 'bg-[#12B76A]'
+                : 'bg-[#F79009]'
+            }`}
+          />
+          <span className="hidden sm:inline">
+            {workspace.mode === 'real' && workspace.gmail_connected ? 'Gmail Connected' : 'Demo Mode'}
+          </span>
+        </button>
+
         {/* Quick View Switches */}
         <div className="hidden lg:flex items-center bg-[#F2EFE9]/80 p-0.5 rounded-lg border border-[#E7E3DA]/80 text-xs">
           <button

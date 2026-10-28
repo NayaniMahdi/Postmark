@@ -36,6 +36,7 @@ export default function WorkspacePage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(undefined);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Modals & Drawers
   const [inspectArticle, setInspectArticle] = useState<KnowledgeArticle | null>(null);
@@ -294,6 +295,8 @@ export default function WorkspacePage() {
           onOpenOnboarding={() => setOnboardingOpen(true)}
           currentView={currentView}
           onViewChange={setCurrentView}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
         {/* Multi-Column Main Workspace */}
@@ -318,6 +321,7 @@ export default function WorkspacePage() {
               { id: 'team-security', name: 'Security', slug: 'security', member_count: 3, description: '' },
             ]}
             counts={counts}
+            isCollapsed={isSidebarCollapsed}
           />
 
           {/* Conditional View Rendering */}
