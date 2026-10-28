@@ -51,12 +51,12 @@ export interface Classification {
   id: string;
   conversation_id: string;
   topic: string;
-  subtopic?: string;
+  subtopic?: string | null;
   urgency: Urgency;
   sentiment: Sentiment;
   assigned_team: string;
   confidence: number; // 0.0 - 1.0 (e.g. 0.94 for 94%)
-  risk_flag?: string;
+  risk_flag?: string | null;
   explanation: string;
   needs_human_review: boolean;
   provider: string; // 'nvidia' | 'openrouter' | 'mock'

@@ -8,7 +8,12 @@ export class NvidiaProvider implements AIProvider {
   private baseUrl = 'https://integrate.api.nvidia.com/v1';
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.NVIDIA_API_KEY || '';
+    const raw = apiKey || process.env.NVIDIA_API_KEY || '';
+    this.apiKey = raw
+      .trim()
+      .replace(/^bearer\s+/i, '')
+      .replace(/^["']|["']$/g, '')
+      .trim();
   }
 
   private async callChat(model: string, messages: { role: string; content: string }[], temperature = 0.2) {
@@ -16,21 +21,20 @@ export class NvidiaProvider implements AIProvider {
       throw new Error('NVIDIA API Key is missing. Please provide NVIDIA_API_KEY.');
     }
 
-    // Remap deprecated or discontinued model endpoints automatically
-    let primaryModel = model;
-    if (primaryModel.includes('llama-3.3-70b-instruct')) {
-      primaryModel = DEFAULT_NVIDIA_CLASSIFIER;
+    // Remap deprecated, discontinued, or account-inaccessible model endpoints automatically
+    let requestedModel = model;
+    if (
+      !requestedModel ||
+      requestedModel.includes('llama-3.3') ||
+      requestedModel.includes('llama-3.1') ||
+      requestedModel.includes('gemma') ||
+      requestedModel.includes('mistral') ||
+      requestedModel.includes('nemotron')
+    ) {
+      requestedModel = DEFAULT_NVIDIA_CLASSIFIER;
     }
 
-    const candidateModels = Array.from(
-      new Set([
-        primaryModel,
-        DEFAULT_NVIDIA_CLASSIFIER,
-        DEFAULT_NVIDIA_DRAFT,
-        'meta/llama-3.1-70b-instruct',
-        'google/gemma-2-9b-it',
-      ])
-    );
+    const candidateModels = Array.from(new Set([requestedModel, DEFAULT_NVIDIA_CLASSIFIER]));
 
     let lastError: Error | null = null;
 
@@ -56,10 +60,11 @@ export class NvidiaProvider implements AIProvider {
 
         if (!response.ok) {
           const errText = await response.text();
-          // If model is discontinued (410) or not found (404), try next fast candidate
+          // If model is discontinued (410) or not found (404), try next verified candidate
           if (
             response.status === 410 ||
             response.status === 404 ||
+            errText.includes('Not found') ||
             errText.includes('end of life') ||
             errText.includes('no longer available')
           ) {
@@ -238,11 +243,23 @@ Respond with JSON:
     if (!this.apiKey) {
       return { ok: false, message: 'NVIDIA API key not configured' };
     }
+    if (!this.apiKey.startsWith('nvapi-')) {
+      return {
+        ok: false,
+        message: "Invalid format: NVIDIA NIM keys must start with 'nvapi-'. Please copy your key from build.nvidia.com (not an OpenAI sk-... key).",
+      };
+    }
     try {
-      const res = await this.callChat(DEFAULT_NVIDIA_CLASSIFIER, [{ role: 'user', content: '{"ping": true}' }], 0.1);
+      const res = await this.callChat(DEFAULT_NVIDIA_CLASSIFIER, [{ role: 'user', content: 'Say hello in 3 words' }], 0.1);
       return { ok: true, message: `Connected via ${res.resolvedModel} (latency: ${res.latencyMs}ms)` };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('401') || msg.includes('JWS/JWE') || msg.includes('Unauthorized')) {
+        return {
+          ok: false,
+          message: "Unauthorized (401): The key was rejected by NVIDIA. Please verify your 'nvapi-...' key is copied accurately from build.nvidia.com.",
+        };
+      }
       return { ok: false, message: msg };
     }
   }

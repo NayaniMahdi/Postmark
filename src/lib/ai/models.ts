@@ -11,74 +11,24 @@ export interface ModelOption {
 
 export const NVIDIA_MODELS: ModelOption[] = [
   {
-    id: 'meta/llama-3.1-8b-instruct',
-    name: 'Meta Llama 3.1 8B Instruct',
+    id: 'meta/llama-3.2-11b-vision-instruct',
+    name: 'Meta Llama 3.2 11B Instruct',
     provider: 'nvidia',
     category: 'fast',
-    badge: '⚡ Ultra Fast',
-    speed: '<350ms latency',
-    description: 'Lightweight, ultra-low latency model. Best for instant email classification and triage.',
-    recommendedFor: 'classifier',
+    badge: '⚡ Ultra Fast (11B)',
+    speed: '~1-3s latency',
+    description: 'Current active Meta Llama model on NVIDIA NIM. Best for rapid email classification and grounded drafting.',
+    recommendedFor: 'both',
   },
   {
-    id: 'nvidia/llama-3.1-nemotron-70b-instruct',
-    name: 'NVIDIA Llama 3.1 Nemotron 70B',
+    id: 'meta/llama-3.2-90b-vision-instruct',
+    name: 'Meta Llama 3.2 90B Instruct',
     provider: 'nvidia',
     category: 'flagship',
-    badge: '🏆 NVIDIA Flagship',
-    speed: '~800ms latency',
-    description: 'NVIDIA fine-tuned flagship model. Exceptional customer response drafting and adherence to policies.',
+    badge: '🧠 High Reasoning (90B)',
+    speed: '~4-6s latency',
+    description: 'NVIDIA flagship 90B model. Exceptional multi-step customer inquiry reasoning and strict policy adherence.',
     recommendedFor: 'draft',
-  },
-  {
-    id: 'meta/llama-3.1-70b-instruct',
-    name: 'Meta Llama 3.1 70B Instruct',
-    provider: 'nvidia',
-    category: 'reasoning',
-    badge: '🧠 High Reasoning',
-    speed: '~900ms latency',
-    description: 'Deep contextual understanding, great for complex support and refund disputes.',
-    recommendedFor: 'both',
-  },
-  {
-    id: 'deepseek-ai/deepseek-r1',
-    name: 'DeepSeek R1',
-    provider: 'nvidia',
-    category: 'reasoning',
-    badge: '🔬 Reasoning Powerhouse',
-    speed: '~1.2s latency',
-    description: 'Advanced multi-step reasoning for technical support bugs and outage tickets.',
-    recommendedFor: 'both',
-  },
-  {
-    id: 'mistralai/mistral-large-2-instruct',
-    name: 'Mistral Large 2',
-    provider: 'nvidia',
-    category: 'flagship',
-    badge: '🌍 Multilingual & Enterprise',
-    speed: '~850ms latency',
-    description: 'Top-tier enterprise support, multilingual customer inquiries, and coding errors.',
-    recommendedFor: 'draft',
-  },
-  {
-    id: 'google/gemma-2-9b-it',
-    name: 'Google Gemma 2 9B',
-    provider: 'nvidia',
-    category: 'fast',
-    badge: '⚡ Fast & Clean',
-    speed: '<400ms latency',
-    description: 'Google efficient architecture, fast turnaround for short customer answers.',
-    recommendedFor: 'classifier',
-  },
-  {
-    id: 'qwen/qwen2.5-72b-instruct',
-    name: 'Qwen 2.5 72B Instruct',
-    provider: 'nvidia',
-    category: 'flagship',
-    badge: '🎯 High Precision',
-    speed: '~900ms latency',
-    description: 'High math, coding, and multilingual accuracy with structured JSON output.',
-    recommendedFor: 'both',
   },
 ];
 
@@ -125,8 +75,8 @@ export const OPENROUTER_MODELS: ModelOption[] = [
   },
 ];
 
-export const DEFAULT_NVIDIA_CLASSIFIER = 'meta/llama-3.1-8b-instruct';
-export const DEFAULT_NVIDIA_DRAFT = 'nvidia/llama-3.1-nemotron-70b-instruct';
+export const DEFAULT_NVIDIA_CLASSIFIER = 'meta/llama-3.2-11b-vision-instruct';
+export const DEFAULT_NVIDIA_DRAFT = 'meta/llama-3.2-11b-vision-instruct';
 
 export const DEFAULT_OPENROUTER_CLASSIFIER = 'meta-llama/llama-3.1-8b-instruct';
 export const DEFAULT_OPENROUTER_DRAFT = 'meta-llama/llama-3.1-70b-instruct';

@@ -90,8 +90,8 @@ class Store {
       settings: {
         primaryProvider: (process.env.AI_PRIMARY_PROVIDER as 'nvidia' | 'openrouter') || 'nvidia',
         fallbackProvider: (process.env.AI_FALLBACK_PROVIDER as 'nvidia' | 'openrouter') || 'openrouter',
-        classifierModel: process.env.AI_CLASSIFIER_MODEL || 'meta/llama-3.1-8b-instruct',
-        draftModel: process.env.AI_DRAFT_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct',
+        classifierModel: process.env.AI_CLASSIFIER_MODEL || 'meta/llama-3.2-11b-vision-instruct',
+        draftModel: process.env.AI_DRAFT_MODEL || 'meta/llama-3.2-11b-vision-instruct',
         fallbackModel: process.env.AI_FALLBACK_MODEL || 'meta-llama/llama-3.1-8b-instruct',
         nvidiaApiKey: process.env.NVIDIA_API_KEY || '',
         openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
@@ -112,12 +112,20 @@ class Store {
         const parsed = JSON.parse(raw);
         if (parsed.conversations && parsed.conversations.length > 0) {
           this.state = parsed;
-          // Auto-upgrade deprecated models from previous runs
-          if (this.state.settings?.classifierModel?.includes('llama-3.3-70b-instruct')) {
-            this.state.settings.classifierModel = 'meta/llama-3.1-8b-instruct';
+          // Auto-upgrade deprecated or 404 models from previous runs
+          const isLegacy = (m?: string) =>
+            !m ||
+            m.includes('llama-3.3') ||
+            m.includes('llama-3.1') ||
+            m.includes('gemma') ||
+            m.includes('nemotron') ||
+            m.includes('mistral');
+
+          if (isLegacy(this.state.settings?.classifierModel)) {
+            this.state.settings.classifierModel = 'meta/llama-3.2-11b-vision-instruct';
           }
-          if (this.state.settings?.draftModel?.includes('llama-3.3-70b-instruct')) {
-            this.state.settings.draftModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
+          if (isLegacy(this.state.settings?.draftModel)) {
+            this.state.settings.draftModel = 'meta/llama-3.2-11b-vision-instruct';
           }
           if (this.state.settings?.fallbackModel?.includes('llama-3.3-70b-instruct')) {
             this.state.settings.fallbackModel = 'meta-llama/llama-3.1-8b-instruct';

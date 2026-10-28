@@ -35,8 +35,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [openrouterKey, setOpenrouterKey] = useState('');
   const [primaryProvider, setPrimaryProvider] = useState<'nvidia' | 'openrouter' | 'mock'>('nvidia');
   const [fallbackProvider, setFallbackProvider] = useState<'nvidia' | 'openrouter' | 'mock'>('openrouter');
-  const [classifierModel, setClassifierModel] = useState('meta/llama-3.3-70b-instruct');
-  const [draftModel, setDraftModel] = useState('meta/llama-3.3-70b-instruct');
+  const [classifierModel, setClassifierModel] = useState('meta/llama-3.2-11b-vision-instruct');
+  const [draftModel, setDraftModel] = useState('meta/llama-3.2-11b-vision-instruct');
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.85);
   const [supportTone, setSupportTone] = useState<DraftTone>('professional');
 
@@ -56,8 +56,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             setOpenrouterKey(data.settings.openrouterApiKey || '');
             setPrimaryProvider(data.settings.primaryProvider || 'nvidia');
             setFallbackProvider(data.settings.fallbackProvider || 'openrouter');
-            setClassifierModel(data.settings.classifierModel || 'meta/llama-3.3-70b-instruct');
-            setDraftModel(data.settings.draftModel || 'meta/llama-3.3-70b-instruct');
+            setClassifierModel(data.settings.classifierModel || 'meta/llama-3.2-11b-vision-instruct');
+            setDraftModel(data.settings.draftModel || 'meta/llama-3.2-11b-vision-instruct');
             setConfidenceThreshold(data.settings.confidenceThreshold || 0.85);
             setSupportTone(data.settings.supportTone || 'professional');
           }
