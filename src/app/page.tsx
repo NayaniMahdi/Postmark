@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HeaderBar } from '@/components/HeaderBar';
 import { Sidebar } from '@/components/Sidebar';
 import { ConversationList } from '@/components/ConversationList';
@@ -17,7 +17,8 @@ import { Conversation, KnowledgeArticle, AuditEvent, Workspace, Team, DraftTone,
 
 export default function WorkspacePage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedId, setSelectedId] = useState<string>('conv-1');
+  const [selectedId, setSelectedId] = useState<string>('');
+  const selectedIdRef = useRef<string>('');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [timeline, setTimeline] = useState<AuditEvent[]>([]);
   const [knowledgeArticles, setKnowledgeArticles] = useState<KnowledgeArticle[]>([]);
@@ -29,6 +30,11 @@ export default function WorkspacePage() {
     gmail_connected: false,
     created_at: '2026-10-01T00:00:00Z',
   });
+
+  // Keep selectedIdRef synchronized with selectedId
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
   // Navigation and Filter States
   const [currentView, setCurrentView] = useState<'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams'>('inbox');
@@ -49,37 +55,52 @@ export default function WorkspacePage() {
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  // Sync latest emails from Gmail
-  const handleSyncInbox = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetch('/api/gmail/sync', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.needsReconnect) {
-          alert('Gmail token expired. Please reconnect Gmail in Settings.');
-        }
-      } else {
-        loadConversations();
-        loadWorkspace();
-        if (selectedId) {
-          loadConversationDetails(selectedId);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to sync inbox:', err);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Load Initial Data
   const loadWorkspace = useCallback(() => {
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => {
-        if (data.workspace) setWorkspace(data.workspace);
+        if (data.workspace) {
+          setWorkspace(data.workspace);
+          if (data.workspace.mode === 'real' && data.workspace.gmail_connected) {
+            if (selectedIdRef.current.startsWith('conv-') || selectedIdRef.current.startsWith('demo-')) {
+              setSelectedId('');
+              selectedIdRef.current = '';
+              setSelectedConversation(null);
+            }
+          } else if (data.workspace.mode === 'demo') {
+            if (selectedIdRef.current.startsWith('gmail-')) {
+              setSelectedId('');
+              selectedIdRef.current = '';
+              setSelectedConversation(null);
+            }
+          }
+        }
+      });
+  }, []);
+
+  const loadConversationDetails = useCallback((id: string, refresh = false) => {
+    if (!id) return;
+    if (refresh) setIsReanalyzing(true);
+    fetch(`/api/conversations/${id}${refresh ? '?refresh=true' : ''}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.conversation) {
+          setSelectedConversation(data.conversation);
+          setTimeline(data.timeline || []);
+          if (refresh) {
+            setConversations((prev) =>
+              prev.map((c) => (c.id === id ? data.conversation : c))
+            );
+          }
+        }
+      })
+      .finally(() => {
+        if (refresh) setIsReanalyzing(false);
       });
   }, []);
 
@@ -95,24 +116,75 @@ export default function WorkspacePage() {
       .then((data) => {
         if (data.conversations) {
           setConversations(data.conversations);
-          // If current selection is invalid, select first available
-          if (!data.conversations.some((c: Conversation) => c.id === selectedId) && data.conversations.length > 0) {
-            setSelectedId(data.conversations[0].id);
+          const currentId = selectedIdRef.current;
+          const isCurrentValid = data.conversations.some((c: Conversation) => c.id === currentId);
+          // Only switch selectedId if nothing selected, or current selection is missing in the active mode
+          if (!isCurrentValid && data.conversations.length > 0) {
+            const firstId = data.conversations[0].id;
+            setSelectedId(firstId);
+            selectedIdRef.current = firstId;
+          } else if (data.conversations.length === 0) {
+            setSelectedId('');
+            selectedIdRef.current = '';
+            setSelectedConversation(null);
           }
         }
       });
-  }, [currentFilter, priorityFilter, searchQuery, selectedTeamId, selectedId]);
+  }, [currentFilter, priorityFilter, searchQuery, selectedTeamId]);
 
-  const loadConversationDetails = useCallback((id: string) => {
-    fetch(`/api/conversations/${id}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.conversation) {
-          setSelectedConversation(data.conversation);
-          setTimeline(data.timeline || []);
-        }
+  // Sync latest emails from Gmail (first 25 fast)
+  const handleSyncInbox = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/gmail/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 25 }),
       });
-  }, []);
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.needsReconnect) {
+          console.warn('[Gmail Sync] Token expired. Reconnect needed.');
+        }
+      } else {
+        if (data.nextPageToken !== undefined) {
+          setNextPageToken(data.nextPageToken || null);
+        }
+        loadConversations();
+        loadWorkspace();
+        const activeId = selectedIdRef.current;
+        if (activeId && !activeId.startsWith('conv-') && !activeId.startsWith('demo-')) {
+          loadConversationDetails(activeId);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync inbox:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [loadConversations, loadWorkspace, loadConversationDetails]);
+
+  // Dynamically load the next 25 emails on scroll down
+  const handleLoadMoreEmails = useCallback(async () => {
+    if (!nextPageToken || isLoadingMore || isSyncing) return;
+    setIsLoadingMore(true);
+    try {
+      const res = await fetch('/api/gmail/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 25, pageToken: nextPageToken }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setNextPageToken(data.nextPageToken || null);
+        loadConversations();
+      }
+    } catch (err) {
+      console.error('Failed to load more emails:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [nextPageToken, isLoadingMore, isSyncing, loadConversations]);
 
   const loadKnowledge = useCallback(() => {
     fetch('/api/knowledge')
@@ -164,7 +236,7 @@ export default function WorkspacePage() {
       }, 45000);
       return () => clearInterval(timer);
     }
-  }, [workspace.mode, workspace.gmail_connected]);
+  }, [workspace.mode, workspace.gmail_connected, handleSyncInbox]);
 
   // Draft operations
   const handleUpdateDraft = (newContent: string, tone?: DraftTone) => {
@@ -300,12 +372,26 @@ export default function WorkspacePage() {
   };
 
   const handleSelectMode = async (mode: 'demo' | 'real') => {
+    setSelectedId('');
+    selectedIdRef.current = '';
+    setSelectedConversation(null);
     await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ workspaceMode: mode }),
     });
     loadWorkspace();
+    loadConversations();
+  };
+
+  const handleToggleMode = async () => {
+    if (workspace.mode === 'real' && workspace.gmail_connected) {
+      await handleSelectMode('demo');
+    } else if (workspace.gmail_connected) {
+      await handleSelectMode('real');
+    } else {
+      setOnboardingOpen(true);
+    }
   };
 
   // Nav helpers
@@ -319,9 +405,9 @@ export default function WorkspacePage() {
 
   const counts = {
     inbox: conversations.length,
-    needsReview: conversations.filter((c) => c.tags.includes('Needs Review')).length,
-    assigned: 3,
-    drafts: conversations.filter((c) => c.draft && !c.draft.is_approved).length,
+    needsReview: conversations.filter((c) => c.tags.includes('Needs Review') || c.status === 'needs_review').length,
+    assigned: conversations.filter((c) => c.status === 'assigned').length,
+    drafts: conversations.filter((c) => c.status === 'drafts' || (c.draft && !c.draft.is_approved)).length,
   };
 
   return (
@@ -341,6 +427,7 @@ export default function WorkspacePage() {
           workspace={workspace}
           onOpenSettings={() => setSettingsOpen(true)}
           onOpenOnboarding={() => setOnboardingOpen(true)}
+          onToggleMode={handleToggleMode}
           currentView={currentView}
           onViewChange={setCurrentView}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -391,6 +478,9 @@ export default function WorkspacePage() {
                 title={selectedTeamId ? 'Team Space' : currentFilter === 'needs_review' ? 'Needs Review' : 'Inbox'}
                 onSync={handleSyncInbox}
                 isSyncing={isSyncing}
+                onLoadMore={handleLoadMoreEmails}
+                isLoadingMore={isLoadingMore}
+                hasMore={Boolean(nextPageToken && workspace.gmail_connected)}
               />
 
               {/* Column 3: Selected Conversation Details & AI Draft Editor */}
@@ -425,6 +515,8 @@ export default function WorkspacePage() {
                   onOpenKnowledgeArticle={(art) => setInspectArticle(art)}
                   onOpenDecisionReceipt={() => setReceiptOpen(true)}
                   onOpenCorrection={() => setCorrectionOpen(true)}
+                  onReanalyze={() => loadConversationDetails(selectedId, true)}
+                  isReanalyzing={isReanalyzing}
                 />
               )}
             </>

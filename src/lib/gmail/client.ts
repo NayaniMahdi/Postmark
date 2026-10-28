@@ -94,6 +94,11 @@ export class GmailClient {
   }
 
   async getUserEmail(accessToken: string): Promise<string> {
+    const profile = await this.getUserProfile(accessToken);
+    return profile.email;
+  }
+
+  async getUserProfile(accessToken: string): Promise<{ email: string; name?: string }> {
     const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -101,13 +106,21 @@ export class GmailClient {
       throw new Error('Failed to fetch user profile');
     }
     const data = await response.json();
-    return data.email;
+    return { email: data.email, name: data.name };
   }
 
-  async listMessages(accessToken: string, query = 'in:inbox', maxResults = 15): Promise<string[]> {
+  async listMessages(
+    accessToken: string,
+    query = 'in:inbox',
+    maxResults = 25,
+    pageToken?: string
+  ): Promise<{ messageIds: string[]; nextPageToken?: string; resultSizeEstimate?: number }> {
     const url = new URL('https://gmail.googleapis.com/gmail/v1/users/me/messages');
     url.searchParams.set('q', query);
     url.searchParams.set('maxResults', maxResults.toString());
+    if (pageToken) {
+      url.searchParams.set('pageToken', pageToken);
+    }
 
     const response = await fetch(url.toString(), {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -119,7 +132,11 @@ export class GmailClient {
     }
 
     const data = await response.json();
-    return (data.messages || []).map((m: { id: string }) => m.id);
+    return {
+      messageIds: (data.messages || []).map((m: { id: string }) => m.id),
+      nextPageToken: data.nextPageToken,
+      resultSizeEstimate: data.resultSizeEstimate,
+    };
   }
 
   async getMessage(accessToken: string, messageId: string): Promise<GmailParsedMessage> {

@@ -111,6 +111,16 @@ class Store {
         const raw = fs.readFileSync(this.filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed.conversations && parsed.conversations.length > 0) {
+          // Deduplicate conversations by id
+          const seen = new Set<string>();
+          const deduped: Conversation[] = [];
+          for (const c of parsed.conversations) {
+            const key = c.id || (c.gmail_message_id ? `gmail-${c.gmail_message_id}` : '');
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(c);
+          }
+          parsed.conversations = deduped;
           this.state = parsed;
           // Auto-upgrade deprecated or 404 models from previous runs
           const isLegacy = (m?: string) =>
@@ -176,6 +186,16 @@ class Store {
   }): Conversation[] {
     let list = [...this.state.conversations];
 
+    // Mode-aware filtering:
+    // Real mode (when Gmail is connected and mode is 'real'): ONLY show real emails, NO dummy/demo emails.
+    // Demo mode: ONLY show dummy/demo emails, NO real emails.
+    const isRealMode = this.state.workspace.mode === 'real' && this.state.workspace.gmail_connected;
+    if (isRealMode) {
+      list = list.filter((c) => !c.is_demo && !c.id.startsWith('conv-') && !c.id.startsWith('demo-'));
+    } else {
+      list = list.filter((c) => c.is_demo || c.id.startsWith('conv-') || c.id.startsWith('demo-'));
+    }
+
     if (filter?.status && filter.status !== 'inbox') {
       if (filter.status === 'starred') {
         list = list.filter((c) => c.starred);
@@ -215,6 +235,13 @@ class Store {
   }
 
   getConversationById(id: string): Conversation | undefined {
+    const isRealMode = this.state.workspace.mode === 'real' && this.state.workspace.gmail_connected;
+    if (isRealMode && (id.startsWith('conv-') || id.startsWith('demo-'))) {
+      return undefined;
+    }
+    if (!isRealMode && id.startsWith('gmail-')) {
+      return undefined;
+    }
     return this.state.conversations.find((c) => c.id === id);
   }
 
@@ -482,7 +509,10 @@ class Store {
 
   // Analytics
   getAnalyticsSummary(): AnalyticsSummary {
-    const convs = this.state.conversations;
+    const isRealMode = this.state.workspace.mode === 'real' && this.state.workspace.gmail_connected;
+    const convs = isRealMode
+      ? this.state.conversations.filter((c) => !c.is_demo && !c.id.startsWith('conv-') && !c.id.startsWith('demo-'))
+      : this.state.conversations.filter((c) => c.is_demo || c.id.startsWith('conv-') || c.id.startsWith('demo-'));
     const total = convs.length;
     const unread = convs.filter((c) => c.unread).length;
     const needsReview = convs.filter((c) => c.status === 'needs_review' || c.tags.includes('Needs Review')).length;

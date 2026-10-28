@@ -13,6 +13,9 @@ interface ConversationListProps {
   title?: string;
   onSync?: () => void;
   isSyncing?: boolean;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
 }
 
 export const ConversationList: React.FC<ConversationListProps> = ({
@@ -24,6 +27,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   title = 'Inbox',
   onSync,
   isSyncing,
+  onLoadMore,
+  isLoadingMore = false,
+  hasMore = false,
 }) => {
   // Compute counts for priority tabs
   const allCount = conversations.length;
@@ -159,17 +165,27 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       </div>
 
       {/* Conversation Cards Scroll List */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+      <div
+        className="flex-1 overflow-y-auto p-2 space-y-1.5"
+        onScroll={(e) => {
+          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+          if (scrollHeight - scrollTop - clientHeight < 120) {
+            if (hasMore && !isLoadingMore && onLoadMore) {
+              onLoadMore();
+            }
+          }
+        }}
+      >
         {conversations.length === 0 ? (
           <div className="p-8 text-center text-xs text-[#777970]">
             No conversations match this filter.
           </div>
         ) : (
-          conversations.map((conv) => {
+          conversations.map((conv, idx) => {
             const isSelected = selectedId === conv.id;
             return (
               <div
-                key={conv.id}
+                key={`${conv.id}-${idx}`}
                 onClick={() => onSelect(conv.id)}
                 className={`p-3 rounded-2xl cursor-pointer transition relative ${
                   isSelected
@@ -225,6 +241,32 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               </div>
             );
           })
+        )}
+
+        {/* Dynamic Infinite Scroll Indicators */}
+        {isLoadingMore && (
+          <div className="py-3 px-2 flex items-center justify-center gap-2 text-xs text-[#777970] animate-pulse">
+            <RotateCw className="w-3.5 h-3.5 animate-spin text-[#4F46E5]" />
+            <span>Syncing older emails...</span>
+          </div>
+        )}
+
+        {hasMore && !isLoadingMore && (
+          <div className="py-2.5 px-2 flex justify-center">
+            <button
+              onClick={onLoadMore}
+              className="text-[11px] font-medium text-[#50524B] hover:text-[#292B27] bg-white/80 hover:bg-white border border-[#E7E3DA] rounded-full px-3.5 py-1.5 shadow-2xs transition flex items-center gap-1.5"
+            >
+              <RotateCw className="w-3 h-3 text-[#777970]" />
+              <span>Load next 25 emails</span>
+            </button>
+          </div>
+        )}
+
+        {!hasMore && conversations.length > 20 && (
+          <div className="py-3 text-center text-[10px] text-[#A4A69D]">
+            All available emails loaded
+          </div>
         )}
       </div>
     </div>

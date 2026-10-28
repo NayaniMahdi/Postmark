@@ -19,6 +19,7 @@ interface HeaderBarProps {
   workspace: Workspace;
   onOpenSettings: () => void;
   onOpenOnboarding: () => void;
+  onToggleMode?: () => void;
   currentView: 'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams';
   onViewChange: (view: 'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams') => void;
   isSidebarCollapsed: boolean;
@@ -33,6 +34,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   workspace,
   onOpenSettings,
   onOpenOnboarding,
+  onToggleMode,
   currentView,
   onViewChange,
   isSidebarCollapsed,
@@ -40,6 +42,15 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onSyncInbox,
   isSyncing,
 }) => {
+  const isRealMode = workspace.mode === 'real' && workspace.gmail_connected;
+  const profileName = isRealMode
+    ? (workspace.gmail_name || (workspace.gmail_email ? workspace.gmail_email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Mahdi Nayani'))
+    : 'Aanya';
+  const profileSubtitle = isRealMode
+    ? (workspace.gmail_email || 'Gmail Connected')
+    : 'Support Specialist';
+  const profileInitial = (profileName || 'A')[0].toUpperCase();
+
   return (
     <header className="h-14 border-b border-[#E7E3DA]/80 px-4 sm:px-5 flex items-center justify-between select-none bg-white/40 backdrop-blur-md rounded-t-3xl">
       {/* Left: Branding with Postmark Logo and Sidebar Collapse Button */}
@@ -91,25 +102,29 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
       {/* Right: Mode Badge, View Switchers, Notifications, Settings, Profile */}
       <div className="flex items-center gap-2.5">
-        {/* Relocated Demo Mode / Gmail Connected Badge */}
+        {/* Mode Badge with Direct Toggle Action */}
         <button
-          onClick={onOpenOnboarding}
+          onClick={onToggleMode || onOpenOnboarding}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition cursor-pointer ${
-            workspace.mode === 'real' && workspace.gmail_connected
+            isRealMode
               ? 'bg-[#ECFDF3] border-[#A6F4C5] text-[#027A48] hover:bg-[#D1FADF]'
               : 'bg-[#FEF6EE] border-[#F9DBAF] text-[#B54708] hover:bg-[#FEE4C8]'
           }`}
-          title="Click to switch between Real Gmail and Demo Mode"
+          title={
+            isRealMode
+              ? 'Currently in Real Gmail mode. Click to switch to Demo Mode'
+              : workspace.gmail_connected
+              ? 'Currently in Demo mode. Click to switch to Real Gmail'
+              : 'Click to connect Gmail or configure modes'
+          }
         >
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              workspace.mode === 'real' && workspace.gmail_connected
-                ? 'bg-[#12B76A]'
-                : 'bg-[#F79009]'
+              isRealMode ? 'bg-[#12B76A]' : 'bg-[#F79009]'
             }`}
           />
           <span className="hidden sm:inline">
-            {workspace.mode === 'real' && workspace.gmail_connected ? 'Gmail Connected' : 'Demo Mode'}
+            {isRealMode ? 'Gmail Connected' : 'Demo Mode'}
           </span>
         </button>
 
@@ -182,14 +197,22 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* User Profile Pill */}
-        <div className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-black/5 transition cursor-pointer border border-transparent hover:border-[#E7E3DA]">
-          <div className="w-7 h-7 rounded-full bg-[#E0E7FF] text-[#3730A3] font-semibold text-xs flex items-center justify-center border border-white shadow-xs">
-            A
+        {/* Dynamic User Profile Pill */}
+        <div
+          onClick={onOpenSettings}
+          className="flex items-center gap-2 pl-2 pr-1 py-1 rounded-full hover:bg-black/5 transition cursor-pointer border border-transparent hover:border-[#E7E3DA]"
+          title={isRealMode ? `Signed in as ${profileName} (${profileSubtitle})` : 'Operating as Demo Support Specialist'}
+        >
+          <div
+            className={`w-7 h-7 rounded-full font-semibold text-xs flex items-center justify-center border border-white shadow-xs ${
+              isRealMode ? 'bg-[#D1FADF] text-[#027A48]' : 'bg-[#E0E7FF] text-[#3730A3]'
+            }`}
+          >
+            {profileInitial}
           </div>
-          <div className="text-left hidden sm:block">
-            <div className="text-xs font-medium text-[#292B27] leading-tight">Aanya</div>
-            <div className="text-[10px] text-[#777970] leading-tight">Support Team</div>
+          <div className="text-left hidden sm:block max-w-[140px]">
+            <div className="text-xs font-medium text-[#292B27] leading-tight truncate">{profileName}</div>
+            <div className="text-[10px] text-[#777970] leading-tight truncate">{profileSubtitle}</div>
           </div>
           <ChevronDown className="w-3.5 h-3.5 text-[#777970]" />
         </div>

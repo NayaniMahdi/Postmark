@@ -13,9 +13,31 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    // If conversation is from real Gmail and doesn't have AI analysis yet, process it dynamically
-    if (!conversation.classification || !conversation.draft) {
-      conversation = await processConversationWithAI(conversation);
+    const { searchParams } = new URL(_req.url);
+    const forceRefresh = searchParams.get('refresh') === 'true';
+
+    // If conversation doesn't have AI analysis or has stale mock classifications / drafts, attempt dynamic processing
+    const needsAI =
+      forceRefresh ||
+      !conversation.classification ||
+      !conversation.draft ||
+      conversation.classification.provider === 'mock' ||
+      conversation.classification.explanation.includes('unable to use the product') ||
+      conversation.classification.explanation.includes('mentions being charged') ||
+      conversation.draft.content.includes('Postmark Support Team') ||
+      conversation.draft.content.includes('duplicate subscription charge');
+
+    if (needsAI) {
+      try {
+        const aiPromise = processConversationWithAI(conversation, true);
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 14000));
+        const result = await Promise.race([aiPromise, timeoutPromise]);
+        if (result) {
+          conversation = result;
+        }
+      } catch (aiErr) {
+        console.warn('[Conversation View] AI processing warning:', aiErr);
+      }
     }
 
     const timeline = store.getAuditEvents(id);

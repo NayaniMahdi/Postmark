@@ -35,3 +35,35 @@ export const DraftResponseSchema = z.object({
 });
 
 export type DraftResponseOutput = z.infer<typeof DraftResponseSchema>;
+
+export function parseJsonFromLlm(content: string): any {
+  if (!content) throw new Error('Empty response from LLM');
+
+  // Try direct parse first
+  try {
+    return JSON.parse(content.trim());
+  } catch {
+    // Continue
+  }
+
+  // Look for JSON markdown block ```json ... ```
+  const mdMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (mdMatch && mdMatch[1]) {
+    try {
+      return JSON.parse(mdMatch[1].trim());
+    } catch {
+      // Continue
+    }
+  }
+
+  // Extract substring from first { to last }
+  const firstBrace = content.indexOf('{');
+  const lastBrace = content.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const jsonStr = content.slice(firstBrace, lastBrace + 1).trim();
+    return JSON.parse(jsonStr);
+  }
+
+  const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(cleaned);
+}

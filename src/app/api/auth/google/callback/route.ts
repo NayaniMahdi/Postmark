@@ -21,12 +21,14 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${origin}/api/auth/google/callback`;
 
     const tokens = await gmailClient.exchangeCode(code, redirectUri);
-    const userEmail = await gmailClient.getUserEmail(tokens.access_token);
+    const userProfile = await gmailClient.getUserProfile(tokens.access_token);
+    const userEmail = userProfile.email;
 
     // Save Gmail connection state
     store.updateWorkspace({
       gmail_connected: true,
       gmail_email: userEmail,
+      gmail_name: userProfile.name,
       mode: 'real',
       last_synced_at: new Date().toISOString(),
     });

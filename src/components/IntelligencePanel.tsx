@@ -18,6 +18,7 @@ import {
   Send,
   Edit3,
   Cpu,
+  RotateCw,
 } from 'lucide-react';
 import { Conversation, KnowledgeArticle, AuditEvent } from '@/types';
 
@@ -28,6 +29,8 @@ interface IntelligencePanelProps {
   onOpenKnowledgeArticle: (article: KnowledgeArticle) => void;
   onOpenDecisionReceipt: () => void;
   onOpenCorrection: () => void;
+  onReanalyze?: () => void;
+  isReanalyzing?: boolean;
 }
 
 export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
@@ -37,6 +40,8 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
   onOpenKnowledgeArticle,
   onOpenDecisionReceipt,
   onOpenCorrection,
+  onReanalyze,
+  isReanalyzing = false,
 }) => {
   const [whyOpen, setWhyOpen] = useState(true);
   const cls = conversation.classification;
@@ -141,15 +146,27 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
             <Sparkles className="w-4 h-4 text-[#292B27]" />
             <h3 className="text-xs font-bold text-[#292B27]">AI Assessment</h3>
           </div>
-          {cls ? (
-            <span className="text-[10px] font-medium text-[#777970] bg-[#F2EFE9] px-2 py-0.5 rounded-full border border-[#E7E3DA]">
-              Confidence <span className="font-bold text-[#292B27]">{Math.round((cls.confidence || 0.94) * 100)}%</span>
-            </span>
-          ) : (
-            <span className="text-[10px] font-medium text-[#B54708] bg-[#FEF6EE] px-2 py-0.5 rounded-full border border-[#F9DBAF]">
-              Pending
-            </span>
-          )}
+          <div className="flex items-center gap-1.5">
+            {cls ? (
+              <span className="text-[10px] font-medium text-[#777970] bg-[#F2EFE9] px-2 py-0.5 rounded-full border border-[#E7E3DA]">
+                Confidence <span className="font-bold text-[#292B27]">{Math.round((cls.confidence || 0.94) * 100)}%</span>
+              </span>
+            ) : (
+              <span className="text-[10px] font-medium text-[#B54708] bg-[#FEF6EE] px-2 py-0.5 rounded-full border border-[#F9DBAF]">
+                Pending
+              </span>
+            )}
+            {onReanalyze && (
+              <button
+                onClick={onReanalyze}
+                disabled={isReanalyzing}
+                className="p-1 rounded-md text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition disabled:opacity-50"
+                title="Re-analyze this email with AI"
+              >
+                <RotateCw className={`w-3 h-3 ${isReanalyzing ? 'animate-spin text-[#4F46E5]' : ''}`} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* AI Provider Indicator */}

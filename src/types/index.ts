@@ -23,6 +23,7 @@ export interface Workspace {
   mode: WorkspaceMode;
   gmail_connected: boolean;
   gmail_email?: string;
+  gmail_name?: string;
   last_synced_at?: string;
   created_at: string;
 }
