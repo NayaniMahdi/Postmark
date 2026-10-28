@@ -1,8 +1,9 @@
 import { AIProvider, AIProviderContext, AIClassificationResult, AIDraftResult } from './types';
 import { ClassificationSchema, DraftResponseSchema } from './schemas';
+import { DEFAULT_OPENROUTER_CLASSIFIER, DEFAULT_OPENROUTER_DRAFT } from './models';
 
-const DEFAULT_CLASSIFIER_MODEL = 'meta-llama/llama-3.3-70b-instruct';
-const DEFAULT_DRAFT_MODEL = 'meta-llama/llama-3.3-70b-instruct';
+const DEFAULT_CLASSIFIER_MODEL = DEFAULT_OPENROUTER_CLASSIFIER;
+const DEFAULT_DRAFT_MODEL = DEFAULT_OPENROUTER_DRAFT;
 
 export class OpenRouterProvider implements AIProvider {
   name = 'openrouter' as const;

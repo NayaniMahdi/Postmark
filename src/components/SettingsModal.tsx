@@ -12,8 +12,10 @@ import {
   RefreshCw,
   Shield,
   Layers,
+  Zap,
 } from 'lucide-react';
 import { AISettings, Workspace, DraftTone } from '@/types';
+import { NVIDIA_MODELS, OPENROUTER_MODELS } from '@/lib/ai/models';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -302,24 +304,81 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Active Model Catalog Presets */}
+            <div className="space-y-4 pt-1">
               <div>
-                <label className="font-semibold text-[#50524B] block mb-1">Classifier Model</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-[#50524B] flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-[#F59E0B]" />
+                    <span>Classifier Model (Triage & Urgency)</span>
+                  </label>
+                  <span className="text-[10px] text-[#4F46E5] font-medium">⚡ Recommended: Fast models (&lt;400ms)</span>
+                </div>
+                <select
+                  value={classifierModel}
+                  onChange={(e) => setClassifierModel(e.target.value)}
+                  className="w-full bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E7E3DA] text-xs focus:outline-none focus:border-[#292B27]"
+                >
+                  <optgroup label="NVIDIA NIM Models (Fast & Reasoning)">
+                    {NVIDIA_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.badge} — {m.name} ({m.speed})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="OpenRouter Models">
+                    {OPENROUTER_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.badge} — {m.name} ({m.speed})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value={classifierModel}>Custom: {classifierModel}</option>
+                </select>
                 <input
                   type="text"
                   value={classifierModel}
                   onChange={(e) => setClassifierModel(e.target.value)}
-                  className="w-full bg-[#FAF9F5] p-2 rounded-xl border border-[#E7E3DA] font-mono text-[11px]"
+                  placeholder="Or enter custom model ID..."
+                  className="w-full mt-1.5 bg-[#FAF9F5] px-2.5 py-1.5 rounded-lg border border-[#E7E3DA] font-mono text-[11px] text-[#50524B]"
                 />
               </div>
 
               <div>
-                <label className="font-semibold text-[#50524B] block mb-1">Drafting Model</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="font-semibold text-[#50524B] flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-[#4F46E5]" />
+                    <span>Drafting Model (Grounded Policy Replies)</span>
+                  </label>
+                  <span className="text-[10px] text-[#027A48] font-medium">🧠 Recommended: High Reasoning</span>
+                </div>
+                <select
+                  value={draftModel}
+                  onChange={(e) => setDraftModel(e.target.value)}
+                  className="w-full bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E7E3DA] text-xs focus:outline-none focus:border-[#292B27]"
+                >
+                  <optgroup label="NVIDIA NIM Models (Flagship & Fast)">
+                    {NVIDIA_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.badge} — {m.name} ({m.speed})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="OpenRouter Models">
+                    {OPENROUTER_MODELS.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.badge} — {m.name} ({m.speed})
+                      </option>
+                    ))}
+                  </optgroup>
+                  <option value={draftModel}>Custom: {draftModel}</option>
+                </select>
                 <input
                   type="text"
                   value={draftModel}
                   onChange={(e) => setDraftModel(e.target.value)}
-                  className="w-full bg-[#FAF9F5] p-2 rounded-xl border border-[#E7E3DA] font-mono text-[11px]"
+                  placeholder="Or enter custom model ID..."
+                  className="w-full mt-1.5 bg-[#FAF9F5] px-2.5 py-1.5 rounded-lg border border-[#E7E3DA] font-mono text-[11px] text-[#50524B]"
                 />
               </div>
             </div>

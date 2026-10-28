@@ -90,9 +90,9 @@ class Store {
       settings: {
         primaryProvider: (process.env.AI_PRIMARY_PROVIDER as 'nvidia' | 'openrouter') || 'nvidia',
         fallbackProvider: (process.env.AI_FALLBACK_PROVIDER as 'nvidia' | 'openrouter') || 'openrouter',
-        classifierModel: process.env.AI_CLASSIFIER_MODEL || 'meta/llama-3.3-70b-instruct',
-        draftModel: process.env.AI_DRAFT_MODEL || 'meta/llama-3.3-70b-instruct',
-        fallbackModel: process.env.AI_FALLBACK_MODEL || 'meta-llama/llama-3.3-70b-instruct',
+        classifierModel: process.env.AI_CLASSIFIER_MODEL || 'meta/llama-3.1-8b-instruct',
+        draftModel: process.env.AI_DRAFT_MODEL || 'nvidia/llama-3.1-nemotron-70b-instruct',
+        fallbackModel: process.env.AI_FALLBACK_MODEL || 'meta-llama/llama-3.1-8b-instruct',
         nvidiaApiKey: process.env.NVIDIA_API_KEY || '',
         openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
         confidenceThreshold: 0.85,
@@ -112,6 +112,16 @@ class Store {
         const parsed = JSON.parse(raw);
         if (parsed.conversations && parsed.conversations.length > 0) {
           this.state = parsed;
+          // Auto-upgrade deprecated models from previous runs
+          if (this.state.settings?.classifierModel?.includes('llama-3.3-70b-instruct')) {
+            this.state.settings.classifierModel = 'meta/llama-3.1-8b-instruct';
+          }
+          if (this.state.settings?.draftModel?.includes('llama-3.3-70b-instruct')) {
+            this.state.settings.draftModel = 'nvidia/llama-3.1-nemotron-70b-instruct';
+          }
+          if (this.state.settings?.fallbackModel?.includes('llama-3.3-70b-instruct')) {
+            this.state.settings.fallbackModel = 'meta-llama/llama-3.1-8b-instruct';
+          }
         }
       }
     } catch {

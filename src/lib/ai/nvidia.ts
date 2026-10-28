@@ -1,8 +1,6 @@
 import { AIProvider, AIProviderContext, AIClassificationResult, AIDraftResult } from './types';
 import { ClassificationSchema, DraftResponseSchema } from './schemas';
-
-const DEFAULT_CLASSIFIER_MODEL = 'meta/llama-3.3-70b-instruct';
-const DEFAULT_DRAFT_MODEL = 'meta/llama-3.3-70b-instruct';
+import { DEFAULT_NVIDIA_CLASSIFIER, DEFAULT_NVIDIA_DRAFT } from './models';
 
 export class NvidiaProvider implements AIProvider {
   name = 'nvidia' as const;
@@ -18,37 +16,83 @@ export class NvidiaProvider implements AIProvider {
       throw new Error('NVIDIA API Key is missing. Please provide NVIDIA_API_KEY.');
     }
 
-    const startTime = Date.now();
-    const response = await fetch(`${this.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens: 1024,
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    const latencyMs = Date.now() - startTime;
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`NVIDIA API error (${response.status}): ${errText}`);
+    // Remap deprecated or discontinued model endpoints automatically
+    let primaryModel = model;
+    if (primaryModel.includes('llama-3.3-70b-instruct')) {
+      primaryModel = DEFAULT_NVIDIA_CLASSIFIER;
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    const tokensUsed = data.usage?.total_tokens;
+    const candidateModels = Array.from(
+      new Set([
+        primaryModel,
+        DEFAULT_NVIDIA_CLASSIFIER,
+        DEFAULT_NVIDIA_DRAFT,
+        'meta/llama-3.1-70b-instruct',
+        'google/gemma-2-9b-it',
+      ])
+    );
 
-    return { content, latencyMs, tokensUsed };
+    let lastError: Error | null = null;
+
+    for (const activeModel of candidateModels) {
+      try {
+        const startTime = Date.now();
+        const response = await fetch(`${this.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: activeModel,
+            messages,
+            temperature,
+            max_tokens: 1024,
+            response_format: { type: 'json_object' },
+          }),
+        });
+
+        const latencyMs = Date.now() - startTime;
+
+        if (!response.ok) {
+          const errText = await response.text();
+          // If model is discontinued (410) or not found (404), try next fast candidate
+          if (
+            response.status === 410 ||
+            response.status === 404 ||
+            errText.includes('end of life') ||
+            errText.includes('no longer available')
+          ) {
+            console.warn(`[NVIDIA NIM] Model ${activeModel} is unavailable (${response.status}), falling back to next model...`);
+            lastError = new Error(`NVIDIA Model ${activeModel} unavailable: ${errText}`);
+            continue;
+          }
+          throw new Error(`NVIDIA API error (${response.status}): ${errText}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        const tokensUsed = data.usage?.total_tokens;
+
+        return { content, latencyMs, tokensUsed, resolvedModel: activeModel };
+      } catch (err: any) {
+        lastError = err;
+        if (
+          err.message?.includes('410') ||
+          err.message?.includes('404') ||
+          err.message?.includes('end of life') ||
+          err.message?.includes('no longer available')
+        ) {
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    throw lastError || new Error('NVIDIA NIM API failed with all candidate models.');
   }
 
-  async classify(context: AIProviderContext, model = DEFAULT_CLASSIFIER_MODEL): Promise<AIClassificationResult> {
+  async classify(context: AIProviderContext, model = DEFAULT_NVIDIA_CLASSIFIER): Promise<AIClassificationResult> {
     const systemPrompt = `You are an expert customer support classifier for Postmark Intelligent Workspace.
 Analyze the customer's email and return a JSON object strictly matching this schema:
 {
@@ -71,7 +115,7 @@ Message Body:
 ${context.messageBody}
 """`;
 
-    const { content, latencyMs, tokensUsed } = await this.callChat(model, [
+    const { content, latencyMs, tokensUsed, resolvedModel } = await this.callChat(model, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
     ]);
@@ -84,7 +128,7 @@ ${context.messageBody}
       ...validated,
       meta: {
         provider: 'nvidia',
-        model,
+        model: resolvedModel,
         latencyMs,
         tokensUsed,
         rawResponse: content,
@@ -92,7 +136,7 @@ ${context.messageBody}
     };
   }
 
-  async generateDraft(context: AIProviderContext, model = DEFAULT_DRAFT_MODEL): Promise<AIDraftResult> {
+  async generateDraft(context: AIProviderContext, model = DEFAULT_NVIDIA_DRAFT): Promise<AIDraftResult> {
     const articlesPrompt = context.knowledgeArticles && context.knowledgeArticles.length > 0
       ? `APPROVED COMPANY KNOWLEDGE BASE ARTICLES:
 ${context.knowledgeArticles
@@ -127,7 +171,7 @@ Customer Inquiry:
 ${context.messageBody}
 """`;
 
-    const { content, latencyMs, tokensUsed } = await this.callChat(model, [
+    const { content, latencyMs, tokensUsed, resolvedModel } = await this.callChat(model, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userMessage },
     ]);
@@ -145,7 +189,7 @@ ${context.messageBody}
       cited_knowledge_ids: matchedIds.length > 0 ? matchedIds : (context.knowledgeArticles?.slice(0, 2).map((a) => a.id) || []),
       meta: {
         provider: 'nvidia',
-        model,
+        model: resolvedModel,
         latencyMs,
         tokensUsed,
         rawResponse: content,
@@ -157,7 +201,7 @@ ${context.messageBody}
     currentDraft: string,
     instruction: 'shorter' | 'details' | 'friendly' | 'professional' | 'concise' | 'empathetic',
     context: AIProviderContext,
-    model = DEFAULT_DRAFT_MODEL
+    model = DEFAULT_NVIDIA_DRAFT
   ): Promise<AIDraftResult> {
     const systemPrompt = `You are Postmark's AI editor. Refine the given draft according to this instruction: "${instruction}".
 Keep the facts intact.
@@ -169,7 +213,7 @@ Respond with JSON:
   "reasoning": "How the draft was adjusted"
 }`;
 
-    const { content, latencyMs, tokensUsed } = await this.callChat(model, [
+    const { content, latencyMs, tokensUsed, resolvedModel } = await this.callChat(model, [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: `Current draft:\n${currentDraft}\n\nOriginal Subject: ${context.subject}\nCustomer message: ${context.messageBody}` },
     ]);
@@ -183,7 +227,7 @@ Respond with JSON:
       cited_knowledge_ids: context.knowledgeArticles?.map((a) => a.id) || [],
       meta: {
         provider: 'nvidia',
-        model,
+        model: resolvedModel,
         latencyMs,
         tokensUsed,
       },
@@ -195,8 +239,8 @@ Respond with JSON:
       return { ok: false, message: 'NVIDIA API key not configured' };
     }
     try {
-      const res = await this.callChat(DEFAULT_CLASSIFIER_MODEL, [{ role: 'user', content: '{"ping": true}' }], 0.1);
-      return { ok: true, message: `Connected (latency: ${res.latencyMs}ms)` };
+      const res = await this.callChat(DEFAULT_NVIDIA_CLASSIFIER, [{ role: 'user', content: '{"ping": true}' }], 0.1);
+      return { ok: true, message: `Connected via ${res.resolvedModel} (latency: ${res.latencyMs}ms)` };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       return { ok: false, message: msg };
