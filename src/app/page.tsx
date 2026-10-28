@@ -48,6 +48,31 @@ export default function WorkspacePage() {
   // Action status
   const [isSending, setIsSending] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Sync latest emails from Gmail
+  const handleSyncInbox = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch('/api/gmail/sync', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.needsReconnect) {
+          alert('Gmail token expired. Please reconnect Gmail in Settings.');
+        }
+      } else {
+        loadConversations();
+        loadWorkspace();
+        if (selectedId) {
+          loadConversationDetails(selectedId);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync inbox:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Load Initial Data
   const loadWorkspace = useCallback(() => {
@@ -117,6 +142,16 @@ export default function WorkspacePage() {
       loadConversationDetails(selectedId);
     }
   }, [selectedId, loadConversationDetails]);
+
+  // Periodic background email sync every 45 seconds when Gmail is connected
+  useEffect(() => {
+    if (workspace.mode === 'real' && workspace.gmail_connected) {
+      const timer = setInterval(() => {
+        handleSyncInbox();
+      }, 45000);
+      return () => clearInterval(timer);
+    }
+  }, [workspace.mode, workspace.gmail_connected]);
 
   // Draft operations
   const handleUpdateDraft = (newContent: string, tone?: DraftTone) => {
@@ -297,6 +332,8 @@ export default function WorkspacePage() {
           onViewChange={setCurrentView}
           isSidebarCollapsed={isSidebarCollapsed}
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onSyncInbox={handleSyncInbox}
+          isSyncing={isSyncing}
         />
 
         {/* Multi-Column Main Workspace */}
@@ -339,6 +376,8 @@ export default function WorkspacePage() {
                 priorityFilter={priorityFilter}
                 onPriorityFilterChange={setPriorityFilter}
                 title={selectedTeamId ? 'Team Space' : currentFilter === 'needs_review' ? 'Needs Review' : 'Inbox'}
+                onSync={handleSyncInbox}
+                isSyncing={isSyncing}
               />
 
               {/* Column 3: Selected Conversation Details & AI Draft Editor */}

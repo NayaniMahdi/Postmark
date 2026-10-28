@@ -98,22 +98,36 @@ export class NvidiaProvider implements AIProvider {
   }
 
   async classify(context: AIProviderContext, model = DEFAULT_NVIDIA_CLASSIFIER): Promise<AIClassificationResult> {
-    const systemPrompt = `You are an expert customer support classifier for Postmark Intelligent Workspace.
-Analyze the customer's email and return a JSON object strictly matching this schema:
+    const systemPrompt = `You are Postmark's intelligent email triage and classification engine.
+Analyze the inbound email and categorize it accurately.
+
+TOPIC CATEGORIES:
+- "Marketing & Promotions": Commercial offers, sales promotions, webinar invitations, course discounts, university announcements, newsletters.
+- "Automated Notification": System alerts, order updates, receipts, password resets, no-reply transactional confirmations.
+- "Billing & Payments": Charges, refunds, invoices, subscription renewals, payment failures.
+- "Technical Support": Software bugs, system issues, API integration, downtime, service troubles.
+- "Account Access": Login issues, 2FA, password recovery, profile credentials, permissions.
+- "General Inquiry": Customer questions, partnership proposals, general correspondence.
+
+CRITICAL RULES:
+- If the email is an automated newsletter, marketing campaign, or educational/university announcement (e.g., NMIMS, Udemy, Coursera, Retail), classify topic as "Marketing & Promotions" or "Automated Notification", urgency as "low", sentiment as "neutral" or "positive", needs_human_review as false, and risk_flag as null.
+- Explanation: 1-2 concise sentences summarizing the nature of the message.
+
+Return ONLY valid JSON:
 {
-  "topic": "Billing & Payments" | "Technical Support" | "Security" | "Account Access" | "Sales" | "Product Inquiry" | "General Inquiry",
+  "topic": "Marketing & Promotions" | "Automated Notification" | "Billing & Payments" | "Technical Support" | "Account Access" | "General Inquiry",
   "subtopic": string,
   "urgency": "low" | "medium" | "high" | "critical",
   "sentiment": "positive" | "neutral" | "frustrated" | "angry" | "uncertain",
-  "assigned_team": "Billing Team" | "Technical Support" | "Security" | "Customer Success" | "Sales",
+  "assigned_team": "Marketing & Growth" | "Customer Success" | "Billing Team" | "Technical Support" | "Security" | "Operations",
   "confidence": number between 0.0 and 1.0,
-  "risk_flag": optional string,
+  "risk_flag": string or null,
   "explanation": "concise 1-2 sentence explanation",
   "needs_human_review": boolean
-}
-Return ONLY valid JSON.`;
+}`;
 
-    const userMessage = `Sender: ${context.senderName} (${context.senderEmail})
+    const userMessage = `Sender Name: ${context.senderName}
+Sender Email: ${context.senderEmail}
 Subject: ${context.subject}
 Message Body:
 """
@@ -151,27 +165,49 @@ Category: ${a.excerpt}
 Content: ${a.content}`
   )
   .join('\n\n')}`
-      : 'No specific knowledge articles attached. Rely on standard polite support best practices and request any necessary human review.';
+      : 'No specific knowledge articles attached. Rely on standard polite support best practices.';
 
-    const systemPrompt = `You are Postmark's intelligent support agent.
-Compose a warm, helpful, accurate reply grounded ONLY in the approved knowledge base articles provided below.
-DO NOT make false promises, unauthorized refunds, or fabricate policies.
-The requested tone is: ${context.tone || 'professional'}.
+    const systemPrompt = `You are an expert executive communication and customer support writer for Postmark Intelligent Workspace.
+Your task is to write the EXACT, production-ready email reply to be sent directly to the sender.
+
+STRICT WRITING RULES:
+1. WRITE DIRECTLY TO THE SENDER:
+   - Address the sender by name (e.g., "Dear ${context.senderName}," or "Hi ${context.senderName.split(' ')[0]},") or team.
+   - Speak directly in the professional voice of the support / workspace team.
+   - NEVER break character. NEVER say "I am an AI", "As a support agent for Postmark", "The email you provided discusses...", "You shared an email about...", or talk ABOUT the email.
+   - The output must be the literal email text that can be dispatched immediately.
+
+2. PROMOTIONAL, ANNOUNCEMENT, OR AUTOMATED EMAILS:
+   - If the inbound email is an automated promotional campaign, university announcement, webinar invite, newsletter, or marketing update:
+     Write a courteous, concise acknowledgment or decline note:
+     "Hi ${context.senderName || 'Team'},
+     
+     Thank you for sharing this update regarding ${context.subject}. We have received and noted the details.
+     
+     Best regards,
+     Postmark Support Team"
+   - Do NOT invent fake disputes or apologize for unrelated services.
+
+3. CUSTOMER INQUIRIES & SUPPORT:
+   - Answer the customer's questions directly, accurately, and empathetically.
+   - Ground facts and resolutions in the approved company knowledge articles provided below.
+   - Tone requested: ${context.tone || 'professional'}.
+   - Conclude with a clean professional sign-off (e.g., "Best regards,\nPostmark Support Team").
 
 ${articlesPrompt}
 
-Respond ONLY with a JSON object in this format:
+Respond ONLY with a JSON object strictly matching this schema:
 {
-  "reply_text": "Complete draft text ready for human review, signed off appropriately",
-  "cited_knowledge_titles": ["exact title of any article you relied on"],
+  "reply_text": "The full, ready-to-send email body with greeting and sign-off",
+  "cited_knowledge_titles": ["exact article title if relied upon"],
   "tone_used": "${context.tone || 'professional'}",
-  "reasoning": "brief explanation of how this answers the inquiry"
+  "reasoning": "1-sentence explanation of response strategy"
 }`;
 
-    const userMessage = `Customer Name: ${context.senderName}
-Customer Email: ${context.senderEmail}
+    const userMessage = `Sender Name: ${context.senderName}
+Sender Email: ${context.senderEmail}
 Subject: ${context.subject}
-Customer Inquiry:
+Inbound Email Content:
 """
 ${context.messageBody}
 """`;
@@ -208,11 +244,18 @@ ${context.messageBody}
     context: AIProviderContext,
     model = DEFAULT_NVIDIA_DRAFT
   ): Promise<AIDraftResult> {
-    const systemPrompt = `You are Postmark's AI editor. Refine the given draft according to this instruction: "${instruction}".
-Keep the facts intact.
+    const systemPrompt = `You are Postmark's expert email editor.
+Refine the provided email draft according to this specific instruction: "${instruction}".
+
+RULES:
+1. The output must be the EXACT email body ready to send to ${context.senderName}.
+2. Keep the greeting (e.g., "Dear ${context.senderName},") and professional sign-off intact.
+3. NEVER add commentary like "Here is the revised draft:".
+4. Adjust the tone, length, or clarity strictly as requested.
+
 Respond with JSON:
 {
-  "reply_text": "The refined draft text",
+  "reply_text": "The refined, ready-to-send email text",
   "cited_knowledge_titles": [],
   "tone_used": "${instruction.includes('friendly') ? 'friendly' : instruction.includes('concise') || instruction.includes('shorter') ? 'concise' : instruction.includes('empathetic') ? 'empathetic' : 'professional'}",
   "reasoning": "How the draft was adjusted"

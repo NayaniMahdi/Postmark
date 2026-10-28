@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gmailClient } from '@/lib/gmail/client';
+import { saveTokens } from '@/lib/gmail/tokens';
 import { store } from '@/lib/store';
 import { processConversationWithAI } from '@/lib/ai/pipeline';
 
@@ -31,11 +32,8 @@ export async function GET(req: NextRequest) {
       last_synced_at: new Date().toISOString(),
     });
 
-    // Store access token in environment variable or store for server operations
-    process.env.GOOGLE_ACCESS_TOKEN = tokens.access_token;
-    if (tokens.refresh_token) {
-      process.env.GOOGLE_REFRESH_TOKEN = tokens.refresh_token;
-    }
+    // Save persistent tokens for continuous syncing & automatic refresh
+    saveTokens(tokens, userEmail);
 
     // Trigger initial inbox sync
     try {

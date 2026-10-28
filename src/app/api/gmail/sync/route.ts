@@ -1,19 +1,23 @@
 import { NextResponse } from 'next/server';
 import { gmailClient } from '@/lib/gmail/client';
+import { getValidAccessToken } from '@/lib/gmail/tokens';
 import { store } from '@/lib/store';
 import { processConversationWithAI } from '@/lib/ai/pipeline';
 
 export async function POST() {
   try {
-    const accessToken = process.env.GOOGLE_ACCESS_TOKEN;
+    const accessToken = await getValidAccessToken();
     if (!accessToken) {
       return NextResponse.json(
-        { error: 'Gmail is not connected or access token is expired.' },
+        {
+          error: 'Gmail is not connected or token expired. Please connect Gmail in Settings.',
+          needsReconnect: true,
+        },
         { status: 400 }
       );
     }
 
-    const messageIds = await gmailClient.listMessages(accessToken, 'in:inbox', 10);
+    const messageIds = await gmailClient.listMessages(accessToken, 'in:inbox', 15);
     let importedCount = 0;
 
     for (const id of messageIds) {
@@ -60,9 +64,15 @@ export async function POST() {
       }
     }
 
-    store.updateWorkspace({ last_synced_at: new Date().toISOString() });
+    const lastSynced = new Date().toISOString();
+    store.updateWorkspace({ last_synced_at: lastSynced });
 
-    return NextResponse.json({ success: true, importedCount });
+    return NextResponse.json({
+      success: true,
+      importedCount,
+      lastSyncedAt: lastSynced,
+      message: importedCount > 0 ? `Synced ${importedCount} new email${importedCount > 1 ? 's' : ''}` : 'Inbox is up to date',
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

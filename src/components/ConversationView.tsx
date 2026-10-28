@@ -18,6 +18,7 @@ import {
   CornerUpLeft,
 } from 'lucide-react';
 import { Conversation, DraftTone } from '@/types';
+import { EmailHtmlViewer } from './EmailHtmlViewer';
 
 interface ConversationViewProps {
   conversation: Conversation;
@@ -251,10 +252,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({
 
           {/* Email Body content */}
           {viewHtml && primaryMessage?.body_html ? (
-            <div
-              className="text-xs text-[#292B27] leading-relaxed break-words pt-1 overflow-x-auto max-h-[600px] overflow-y-auto bg-white/40 p-4 rounded-xl border border-[#E7E3DA]/60 [&_p]:mb-2.5 [&_a]:text-[#4F46E5] [&_a]:underline [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
-              dangerouslySetInnerHTML={{ __html: primaryMessage.body_html }}
-            />
+            <EmailHtmlViewer html={primaryMessage.body_html} />
           ) : (
             <div className="text-xs text-[#292B27] leading-relaxed whitespace-pre-wrap font-sans pt-1 break-words bg-[#FAF9F5]/40 p-4 rounded-xl border border-[#E7E3DA]/40">
               {primaryMessage?.body_text || conversation.snippet || 'No message content available.'}

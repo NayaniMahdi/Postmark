@@ -324,9 +324,10 @@ class Store {
       return { success: true, mode: 'demo', messageId: `demo-msg-${Date.now()}` };
     } else {
       // Real Gmail Send
-      const accessToken = process.env.GOOGLE_ACCESS_TOKEN;
+      const { getValidAccessToken } = await import('../gmail/tokens');
+      const accessToken = await getValidAccessToken();
       if (!accessToken) {
-        throw new Error('Real mode active but Google OAuth access token is not configured.');
+        throw new Error('Gmail session expired. Please reconnect Gmail in Settings.');
       }
 
       const res = await gmailClient.sendEmail(accessToken, {

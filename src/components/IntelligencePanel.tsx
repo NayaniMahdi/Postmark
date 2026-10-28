@@ -82,7 +82,7 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
                   description: `Classified as ${cls.topic} (${cls.urgency} urgency)`,
                   actor:
                     cls.provider === 'nvidia'
-                      ? 'NVIDIA Llama 3.3'
+                      ? `NVIDIA NIM (${cls.model ? cls.model.replace('meta/', '') : 'Llama 3.2'})`
                       : cls.provider === 'openrouter'
                       ? 'OpenRouter'
                       : 'Simulated AI Engine',
@@ -99,7 +99,7 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
                   description: `Draft v${conversation.draft.version} generated (${conversation.draft.tone} tone)`,
                   actor:
                     conversation.draft.provider === 'nvidia'
-                      ? 'NVIDIA Llama 3.3'
+                      ? `NVIDIA NIM (${conversation.draft.model ? conversation.draft.model.replace('meta/', '') : 'Llama 3.2'})`
                       : 'Simulated AI Engine',
                   timestamp: 'Completed',
                 },
@@ -161,9 +161,9 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
             </span>
             <span className="font-semibold text-[#292B27]">
               {cls.provider === 'nvidia'
-                ? '⚡ NVIDIA NIM (Llama 3.3)'
+                ? `⚡ NVIDIA NIM (${cls.model ? cls.model.replace('meta/', '') : 'Llama 3.2 11B'})`
                 : cls.provider === 'openrouter'
-                ? '🌐 OpenRouter'
+                ? `🌐 OpenRouter (${cls.model || 'Llama 3.1'})`
                 : '🤖 Simulated AI Engine'}
             </span>
           </div>

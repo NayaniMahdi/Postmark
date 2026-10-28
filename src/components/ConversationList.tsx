@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, RotateCw } from 'lucide-react';
 import { Conversation, Priority } from '@/types';
 
 interface ConversationListProps {
@@ -11,6 +11,8 @@ interface ConversationListProps {
   priorityFilter: string;
   onPriorityFilterChange: (p: string) => void;
   title?: string;
+  onSync?: () => void;
+  isSyncing?: boolean;
 }
 
 export const ConversationList: React.FC<ConversationListProps> = ({
@@ -20,6 +22,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   priorityFilter,
   onPriorityFilterChange,
   title = 'Inbox',
+  onSync,
+  isSyncing,
 }) => {
   // Compute counts for priority tabs
   const allCount = conversations.length;
@@ -58,12 +62,24 @@ export const ConversationList: React.FC<ConversationListProps> = ({
       <div className="p-4 pb-3 border-b border-[#E7E3DA]/60">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-[#292B27] tracking-tight">{title}</h2>
-          <button
-            className="p-1.5 rounded-lg text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition"
-            title="Filter Options"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            {onSync && (
+              <button
+                onClick={onSync}
+                disabled={isSyncing}
+                className="p-1.5 rounded-lg text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition disabled:opacity-50"
+                title="Sync and check for new emails"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#4F46E5]' : ''}`} />
+              </button>
+            )}
+            <button
+              className="p-1.5 rounded-lg text-[#777970] hover:text-[#292B27] hover:bg-black/5 transition"
+              title="Filter Options"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Priority Tabs */}

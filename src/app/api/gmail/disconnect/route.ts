@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { store } from '@/lib/store';
+import { clearTokens } from '@/lib/gmail/tokens';
 
 export async function POST() {
   try {
-    delete process.env.GOOGLE_ACCESS_TOKEN;
-    delete process.env.GOOGLE_REFRESH_TOKEN;
+    clearTokens();
 
     store.updateWorkspace({
       gmail_connected: false,

@@ -8,6 +8,7 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
+  RotateCw,
 } from 'lucide-react';
 import { Workspace } from '@/types';
 import { PostmarkLogo } from './PostmarkLogo';
@@ -22,6 +23,8 @@ interface HeaderBarProps {
   onViewChange: (view: 'inbox' | 'knowledge' | 'templates' | 'analytics' | 'teams') => void;
   isSidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  onSyncInbox?: () => Promise<void>;
+  isSyncing?: boolean;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
@@ -34,6 +37,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onViewChange,
   isSidebarCollapsed,
   onToggleSidebar,
+  onSyncInbox,
+  isSyncing,
 }) => {
   return (
     <header className="h-14 border-b border-[#E7E3DA]/80 px-4 sm:px-5 flex items-center justify-between select-none bg-white/40 backdrop-blur-md rounded-t-3xl">
@@ -107,6 +112,23 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             {workspace.mode === 'real' && workspace.gmail_connected ? 'Gmail Connected' : 'Demo Mode'}
           </span>
         </button>
+
+        {/* Sync Mail Button */}
+        {onSyncInbox && (
+          <button
+            onClick={onSyncInbox}
+            disabled={isSyncing}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+              isSyncing
+                ? 'bg-[#E0E7FF] border-[#C7D2FE] text-[#3730A3]'
+                : 'bg-white/80 hover:bg-white border-[#E7E3DA] text-[#292B27] shadow-xs'
+            }`}
+            title="Fetch new inbound emails from Gmail"
+          >
+            <RotateCw className={`w-3.5 h-3.5 text-[#4F46E5] ${isSyncing ? 'animate-spin' : ''}`} />
+            <span className="hidden md:inline">{isSyncing ? 'Syncing...' : 'Sync Mail'}</span>
+          </button>
+        )}
 
         {/* Quick View Switches */}
         <div className="hidden lg:flex items-center bg-[#F2EFE9]/80 p-0.5 rounded-lg border border-[#E7E3DA]/80 text-xs">
