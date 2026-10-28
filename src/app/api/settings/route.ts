@@ -36,20 +36,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const current = store.getSettings();
 
+    const cleanKey = (k?: string) =>
+      (k || '')
+        .trim()
+        .replace(/^bearer\s+/i, '')
+        .replace(/^["']|["']$/g, '')
+        .trim();
+
     // Preserve existing key if masked or empty
-    const nvidiaKey =
-      body.nvidiaApiKey && !body.nvidiaApiKey.includes('••••')
-        ? body.nvidiaApiKey
-        : current.nvidiaApiKey;
-    const openrouterKey =
-      body.openrouterApiKey && !body.openrouterApiKey.includes('••••')
-        ? body.openrouterApiKey
-        : current.openrouterApiKey;
+    const rawNvidia = body.nvidiaApiKey && !body.nvidiaApiKey.includes('••••')
+      ? cleanKey(body.nvidiaApiKey)
+      : current.nvidiaApiKey;
+    const rawOpenRouter = body.openrouterApiKey && !body.openrouterApiKey.includes('••••')
+      ? cleanKey(body.openrouterApiKey)
+      : current.openrouterApiKey;
 
     const updated = store.updateSettings({
       ...body,
-      nvidiaApiKey: nvidiaKey,
-      openrouterApiKey: openrouterKey,
+      nvidiaApiKey: rawNvidia,
+      openrouterApiKey: rawOpenRouter,
     });
 
     if (body.workspaceMode) {
@@ -67,7 +72,14 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const provider = body.provider; // 'nvidia' | 'openrouter'
-    const apiKey = body.apiKey;
+    const cleanKey = (k?: string) =>
+      (k || '')
+        .trim()
+        .replace(/^bearer\s+/i, '')
+        .replace(/^["']|["']$/g, '')
+        .trim();
+
+    const apiKey = cleanKey(body.apiKey);
 
     if (provider === 'nvidia') {
       const p = new NvidiaProvider(apiKey);
