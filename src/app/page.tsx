@@ -126,10 +126,23 @@ export default function WorkspacePage() {
     loadWorkspace();
     loadKnowledge();
 
-    // Check for first-time launch query or flag
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('onboarding') === 'true') {
       setOnboardingOpen(true);
+    }
+
+    if (urlParams.get('gmail_connected') === 'true') {
+      window.history.replaceState({}, '', window.location.pathname);
+      loadWorkspace();
+      loadConversations();
+      // Smoothly trigger first sync in background
+      handleSyncInbox();
+    }
+
+    const oauthErr = urlParams.get('oauth_error');
+    if (oauthErr) {
+      window.history.replaceState({}, '', window.location.pathname);
+      alert(`Google Sign-in failed: ${decodeURIComponent(oauthErr)}`);
     }
   }, [loadWorkspace, loadKnowledge]);
 

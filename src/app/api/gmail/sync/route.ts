@@ -59,7 +59,11 @@ export async function POST() {
             },
           ],
         });
-        await processConversationWithAI(conv);
+        try {
+          await processConversationWithAI(conv);
+        } catch (aiErr) {
+          console.warn('[Gmail Sync] AI processing failed for conversation:', conv.id, aiErr);
+        }
         importedCount++;
       }
     }

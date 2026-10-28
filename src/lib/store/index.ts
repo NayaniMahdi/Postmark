@@ -229,6 +229,17 @@ class Store {
   }
 
   addConversation(conv: Conversation): Conversation {
+    const existingIndex = this.state.conversations.findIndex(
+      (c) => c.id === conv.id || (conv.gmail_message_id && c.gmail_message_id === conv.gmail_message_id)
+    );
+    if (existingIndex !== -1) {
+      this.state.conversations[existingIndex] = {
+        ...this.state.conversations[existingIndex],
+        ...conv,
+      };
+      this.saveToFile();
+      return this.state.conversations[existingIndex];
+    }
     this.state.conversations.unshift(conv);
     this.saveToFile();
     return conv;
