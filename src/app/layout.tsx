@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'Postmark — Intelligent Support Workspace',
   description: 'AI customer support workspace with Gmail integration, grounded replies, and human approval.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/logo.svg',
   },
 };
 

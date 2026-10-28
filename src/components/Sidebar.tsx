@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Team } from '@/types';
+import { PostmarkLogo } from './PostmarkLogo';
 
 interface SidebarProps {
   currentFilter: string;
@@ -74,9 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="space-y-6">
         {/* Postmark Brand */}
         <div className="flex items-start gap-3 px-2">
-          <div className="w-8 h-8 rounded-lg bg-[#292B27] text-white flex items-center justify-center shadow-sm">
-            <Mail className="w-4 h-4" />
-          </div>
+          <PostmarkLogo size={32} className="shadow-xs" />
           <div>
             <h1 className="text-sm font-bold tracking-tight text-[#292B27]">Postmark</h1>
             <p className="text-[10px] text-[#777970] leading-none mt-0.5">

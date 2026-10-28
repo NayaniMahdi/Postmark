@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Mail, Sparkles, ShieldCheck, ArrowRight, Check, X, RefreshCw } from 'lucide-react';
 import { Workspace } from '@/types';
+import { PostmarkLogo } from './PostmarkLogo';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -42,9 +43,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="w-12 h-12 rounded-2xl bg-[#292B27] text-white flex items-center justify-center mx-auto shadow-md">
-            <Mail className="w-6 h-6" />
-          </div>
+          <PostmarkLogo size={48} className="mx-auto shadow-md" />
           <h2 className="text-xl font-bold text-[#292B27] tracking-tight">
             Welcome to Postmark Workspace
           </h2>
