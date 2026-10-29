@@ -5,6 +5,8 @@ import { store } from '@/lib/store';
 import { processConversationWithAI } from '@/lib/ai/pipeline';
 import { Conversation } from '@/types';
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     let body: any = {};

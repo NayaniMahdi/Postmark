@@ -3,6 +3,8 @@ import { store } from '@/lib/store';
 import { AIEngine } from '@/lib/ai/engine';
 import { DraftTone } from '@/types';
 
+export const maxDuration = 60;
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { store } from '@/lib/store';
 import { AIEngine } from '@/lib/ai/engine';
 
+export const maxDuration = 60;
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
