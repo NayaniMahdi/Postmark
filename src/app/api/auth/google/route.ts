@@ -3,7 +3,7 @@ import { gmailClient } from '@/lib/gmail/client';
 
 export async function GET(req: NextRequest) {
   try {
-    const origin = req.nextUrl.origin;
+    const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || req.nextUrl.origin;
     const redirectUri = `${origin}/api/auth/google/callback`;
     const state = Buffer.from(JSON.stringify({ timestamp: Date.now() })).toString('base64url');
 

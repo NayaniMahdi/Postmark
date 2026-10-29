@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/?oauth_error=no_code_provided', req.url));
     }
 
-    const origin = req.nextUrl.origin;
+    const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || req.nextUrl.origin;
     const redirectUri = `${origin}/api/auth/google/callback`;
 
     const tokens = await gmailClient.exchangeCode(code, redirectUri);

@@ -38,7 +38,10 @@ class Store {
 
   constructor() {
     this.isServer = typeof window === 'undefined';
-    this.filePath = path.join(process.cwd(), '.data', 'store.json');
+    const isVercel = !!process.env.VERCEL;
+    this.filePath = isVercel
+      ? path.join('/tmp', '.data', 'store.json')
+      : path.join(process.cwd(), '.data', 'store.json');
 
     // Default initial state
     this.state = {
@@ -107,8 +110,15 @@ class Store {
   private loadFromFile() {
     if (!this.isServer) return;
     try {
-      if (fs.existsSync(this.filePath)) {
-        const raw = fs.readFileSync(this.filePath, 'utf-8');
+      let readPath = this.filePath;
+      if (!fs.existsSync(/*turbopackIgnore: true*/ readPath) && process.env.VERCEL) {
+        const cwdSeed = path.join(process.cwd(), '.data', 'store.json');
+        if (fs.existsSync(/*turbopackIgnore: true*/ cwdSeed)) {
+          readPath = cwdSeed;
+        }
+      }
+      if (fs.existsSync(/*turbopackIgnore: true*/ readPath)) {
+        const raw = fs.readFileSync(/*turbopackIgnore: true*/ readPath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed.conversations && parsed.conversations.length > 0) {
           // Deduplicate conversations by id

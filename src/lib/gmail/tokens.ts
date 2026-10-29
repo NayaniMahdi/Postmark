@@ -9,12 +9,19 @@ export interface StoredTokens {
   email?: string;
 }
 
-const TOKENS_PATH = path.join(process.cwd(), '.data', 'tokens.json');
+const isVercel = !!process.env.VERCEL;
+const TOKENS_PATH = isVercel
+  ? path.join('/tmp', '.data', 'tokens.json')
+  : path.join(process.cwd(), '.data', 'tokens.json');
 
 export function saveTokens(tokens: GmailTokens, email?: string): StoredTokens {
-  const dir = path.dirname(TOKENS_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    const dir = path.dirname(TOKENS_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch {
+    // ignore
   }
 
   // If new tokens don't include refresh_token, preserve previous refresh_token
@@ -35,7 +42,11 @@ export function saveTokens(tokens: GmailTokens, email?: string): StoredTokens {
     email: email || process.env.GMAIL_USER_EMAIL,
   };
 
-  fs.writeFileSync(TOKENS_PATH, JSON.stringify(stored, null, 2), 'utf-8');
+  try {
+    fs.writeFileSync(TOKENS_PATH, JSON.stringify(stored, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('[Gmail Tokens] Could not write tokens to disk:', err);
+  }
 
   // Also sync with process.env for convenience
   process.env.GOOGLE_ACCESS_TOKEN = stored.access_token;
