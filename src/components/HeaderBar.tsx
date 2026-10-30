@@ -44,7 +44,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 }) => {
   const isRealMode = workspace.mode === 'real' && workspace.gmail_connected;
   const profileName = isRealMode
-    ? (workspace.gmail_name || (workspace.gmail_email ? workspace.gmail_email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Mahdi Nayani'))
+    ? (workspace.gmail_name || (workspace.gmail_email ? workspace.gmail_email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Support Agent'))
     : 'Aanya';
   const profileSubtitle = isRealMode
     ? (workspace.gmail_email || 'Gmail Connected')

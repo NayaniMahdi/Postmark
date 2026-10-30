@@ -57,7 +57,7 @@ Analyze the inbound email and provide an extraordinarily accurate, context-aware
 
 CATEGORIES & ROUTING:
 1. "Academic & University":
-   - Emails from universities, colleges, departments, professors, academic registrars, exam controllers, campus libraries, student affairs (e.g. skipsuniversity, NMIMS, .edu, .ac.in, .edu.in).
+   - Emails from universities, colleges, departments, professors, academic registrars, exam controllers, campus libraries, student affairs (e.g. universities, colleges, .edu, .ac.in, .edu.in).
    - Assigned Team: "Academic & Student Affairs"
    - Topics: Coursework, semester schedules, assignment deadlines, exam notifications, circulars, library announcements, grading.
 

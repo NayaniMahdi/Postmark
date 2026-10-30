@@ -34,8 +34,12 @@ yarn-error.log*
 .env*
 !.env.example
 
-# local store data
-/.data/
+# local store data & credentials
+.data/
+.data
+tokens.json
+store.json
+*.tokens.json
 
 # vercel
 .vercel
@@ -43,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*

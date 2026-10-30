@@ -1,0 +1,11 @@
+# Vercel deployment ignore rules
+.data/
+.data
+tokens.json
+store.json
+*.tokens.json
+.git
+.github
+tests
+__tests__
+*.log

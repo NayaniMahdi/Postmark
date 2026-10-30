@@ -5,12 +5,7 @@ import { clearTokens } from '@/lib/gmail/tokens';
 export async function POST() {
   try {
     clearTokens();
-
-    store.updateWorkspace({
-      gmail_connected: false,
-      gmail_email: undefined,
-      mode: 'demo',
-    });
+    store.clearGmailData();
 
     return NextResponse.json({ success: true, message: 'Gmail disconnected. Switched to demo mode.' });
   } catch (error: any) {

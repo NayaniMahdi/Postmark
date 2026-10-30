@@ -110,15 +110,8 @@ class Store {
   private loadFromFile() {
     if (!this.isServer) return;
     try {
-      let readPath = this.filePath;
-      if (!fs.existsSync(/*turbopackIgnore: true*/ readPath) && process.env.VERCEL) {
-        const cwdSeed = path.join(process.cwd(), '.data', 'store.json');
-        if (fs.existsSync(/*turbopackIgnore: true*/ cwdSeed)) {
-          readPath = cwdSeed;
-        }
-      }
-      if (fs.existsSync(/*turbopackIgnore: true*/ readPath)) {
-        const raw = fs.readFileSync(/*turbopackIgnore: true*/ readPath, 'utf-8');
+      if (fs.existsSync(/*turbopackIgnore: true*/ this.filePath)) {
+        const raw = fs.readFileSync(/*turbopackIgnore: true*/ this.filePath, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed.conversations && parsed.conversations.length > 0) {
           // Deduplicate conversations by id
@@ -183,6 +176,20 @@ class Store {
 
   updateWorkspace(updates: Partial<Workspace>): Workspace {
     this.state.workspace = { ...this.state.workspace, ...updates };
+    this.saveToFile();
+    return this.state.workspace;
+  }
+
+  clearGmailData(): Workspace {
+    this.state.workspace = {
+      id: 'ws-default',
+      name: 'Scalezix Support Workspace',
+      mode: 'demo',
+      gmail_connected: false,
+      created_at: '2026-10-01T00:00:00Z',
+    };
+    // Purge all real/gmail conversations and restore clean seed conversations
+    this.state.conversations = JSON.parse(JSON.stringify(SEED_CONVERSATIONS));
     this.saveToFile();
     return this.state.workspace;
   }
